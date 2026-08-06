@@ -1,0 +1,6 @@
+/vault-tui
+/bin/
+*.test
+*.out
+.env
+.DS_Store
