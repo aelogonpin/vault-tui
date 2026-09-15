@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/aelogonpin/vault-tui/compare/v1.1.0...v1.2.0) (2026-09-15)
+
+
+### Features
+
+* agregar plantillas para reportes de bugs y solicitudes de características ([fd20f0e](https://github.com/aelogonpin/vault-tui/commit/fd20f0e0f922535c2a91188f242febdd05eaabc4))
+
 ## [1.1.0](https://github.com/aelogonpin/vault-tui/compare/v1.0.0...v1.1.0) (2026-09-15)
 
 
