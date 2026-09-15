@@ -1,0 +1,87 @@
+name: 🐛 Bug report
+description: Algo no funciona como debería
+title: "fix: <resumen breve del problema>"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por reportar un problema. Cuanto más completo esté esto, más
+        rápido se puede reproducir y arreglar.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: ¿Qué ha pasado?
+      description: Descripción clara y concisa del bug.
+      placeholder: Al pulsar "e" sobre un secreto dentro de una carpeta con más de 50 entradas, la app se cierra sin mensaje de error.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducirlo
+      description: Pasos mínimos y concretos para que se pueda reproducir.
+      placeholder: |
+        1. `./vault-tui --addr https://vault.example.com`
+        2. Entrar en el mount "secret"
+        3. Navegar a la carpeta "clientes/acme"
+        4. Pulsar "e" sobre el secreto "db-password"
+        5. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamiento esperado
+      description: ¿Qué debería haber pasado en su lugar?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: auth-method
+    attributes:
+      label: Método de autenticación usado
+      options:
+        - oidc (por defecto)
+        - token
+        - userpass
+        - ldap
+        - No estoy seguro / no aplica
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Versión de vault-tui
+      description: Salida de `./vault-tui --version` si existe, o el tag/commit que usas.
+      placeholder: v1.1.0 / commit 2ce7f9c
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Sistema operativo y arquitectura
+      placeholder: macOS 14.5 arm64 / Ubuntu 22.04 amd64 / Windows 11
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs de depuración (opcional pero muy útil)
+      description: >
+        Vuelve a lanzar la app con `--debug-log /tmp/vault-tui.log`,
+        reproduce el problema y pega aquí el contenido relevante
+        (revisa antes que no contenga secretos/tokens/valores sensibles).
+      render: shell
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto adicional
+      description: Screenshots, config de Vault relevante, versión del servidor Vault, etc.

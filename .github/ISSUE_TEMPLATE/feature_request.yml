@@ -1,0 +1,56 @@
+name: ✨ Feature request
+description: Proponer una funcionalidad nueva o una mejora
+title: "feat: <resumen breve de la propuesta>"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Antes de abrirla, echa un vistazo a la sección "Possible next
+        steps" del README — puede que ya esté anotada.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: ¿Qué problema resuelve esto?
+      description: Motivación / caso de uso. ¿Qué no puedes hacer hoy con la app?
+      placeholder: No hay forma de recuperar un secreto tras un soft-delete sin salir a la CLI de vault.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Solución propuesta
+      description: Cómo te imaginas que funcionaría (comandos, atajos de teclado, pantallas nuevas...).
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+      description: Otras formas de resolverlo que hayas pensado y por qué las descartaste (opcional).
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área afectada
+      multiple: true
+      options:
+        - Autenticación (OIDC/token/userpass/ldap)
+        - Navegación / exploración de secretos
+        - Editor de claves/valores
+        - Copiar / mover / renombrar
+        - Borrado / destrucción / undelete
+        - CLI (flags, variables de entorno)
+        - Build / release / CI
+        - Otra
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto adicional
+      description: Mockups, capturas, enlaces a la doc de Vault relevante, etc.
