@@ -10,8 +10,7 @@ destroy).
 
 - Go 1.26+ (installed via Homebrew: `brew install go`)
 - Network access to your Vault server
-- An OIDC auth method enabled on that Vault server (this app only supports
-  OIDC browser login for now)
+- One of the auth methods below enabled on that Vault server
 
 ## Build
 
@@ -47,18 +46,47 @@ Or set environment variables instead of flags:
 |----------------|---------------------|-----------|------------------------------------------|
 | `--addr`       | `VAULT_ADDR`        | —         | required                                 |
 | `--namespace`  | `VAULT_NAMESPACE`   | —         | Vault Enterprise only                    |
+| `--auth-method`| `VAULT_AUTH_METHOD` | `oidc`    | `oidc`, `token`, `userpass`, or `ldap`   |
+| `--debug-log`  | `VAULT_TUI_DEBUG_LOG` | —       | write debug logs (key events, filter results, operation errors) to this file — the TUI occupies the terminal, so this is the only way to see log output while it's running |
+
+### `--auth-method=oidc` (default)
+
+| Flag           | Env var            | Default   | Notes                                   |
+|----------------|---------------------|-----------|------------------------------------------|
 | `--oidc-mount` | `VAULT_OIDC_MOUNT`  | `oidc`    | mount path of your OIDC auth method — check with your Vault admin if unsure |
 | `--oidc-role`  | `VAULT_OIDC_ROLE`   | —         | leave empty to use the mount's default role |
 | `--oidc-port`  | `VAULT_OIDC_PORT`   | `8250`    | local OIDC callback port; falls back to 8251-8259 if busy |
-| `--debug-log`  | `VAULT_TUI_DEBUG_LOG` | —       | write debug logs (key events, filter results, operation errors) to this file — the TUI occupies the terminal, so this is the only way to see log output while it's running |
 
-On startup the app:
+Opens your browser to your OIDC provider, waits for the redirect on a local
+`localhost` callback, and exchanges it for a Vault token.
 
-1. Reuses a cached token from `~/.vault-token` if it's still valid (same
-   file the official `vault` CLI uses, so tokens are shared between the two).
-2. Otherwise opens your browser to your OIDC provider, waits for the
-   redirect on a local `localhost` callback, exchanges it for a Vault
-   token, and caches it to `~/.vault-token`.
+### `--auth-method=token`
+
+| Flag       | Env var       | Default | Notes                              |
+|------------|---------------|---------|--------------------------------------|
+| `--token`  | `VAULT_TOKEN` | —       | required; an existing Vault token to use as-is |
+
+Uses the token directly (after validating it with a self-lookup) — no
+interactive login step. Useful if you already have a token from another
+tool or auth method.
+
+### `--auth-method=userpass` / `--auth-method=ldap`
+
+| Flag               | Env var                | Default    | Notes                              |
+|---------------------|-------------------------|------------|--------------------------------------|
+| `--username`        | `VAULT_USERNAME`       | —          | prompted interactively if empty     |
+| `--password`        | `VAULT_PASSWORD`       | —          | prompted (hidden, no echo) if empty — prefer the prompt over this flag/env on shared machines, since both are visible to other local processes (`ps`, `/proc`) |
+| `--userpass-mount`  | `VAULT_USERPASS_MOUNT` | `userpass` | mount path of the userpass auth method |
+| `--ldap-mount`      | `VAULT_LDAP_MOUNT`     | `ldap`     | mount path of the LDAP auth method  |
+
+Logs in against Vault's `userpass` or `ldap` auth method with a
+username/password pair.
+
+On startup, regardless of method, the app first reuses a cached token from
+`~/.vault-token` if it's still valid (same file the official `vault` CLI
+uses, so tokens are shared between the two) before falling back to the
+selected auth method's login flow. A fresh login's resulting token is
+cached back to `~/.vault-token`.
 
 ## Keybindings
 
@@ -165,5 +193,5 @@ internal/tui/
 
 - Undelete / rollback UI for soft-deleted or older versions
 - Custom metadata (labels, TTL) editing
-- Non-OIDC auth methods (token, userpass, AppRole) if you ever need them
+- AppRole auth method, if you need it for automation/CI use cases
 - Recursive folder delete (intentionally omitted for now — see above)
