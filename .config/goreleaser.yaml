@@ -33,8 +33,9 @@ archives:
       {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
     files:
       - README.md
-      - GUIA_USO.md
       - LICENSE
+      - src: docs/GUIA_USO.md
+        strip_parent: true
 
 checksum:
   name_template: "checksums.txt"

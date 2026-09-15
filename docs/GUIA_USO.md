@@ -11,8 +11,8 @@ secretos/carpetas y borrar (soft-delete o destrucción permanente).
 
 - Go 1.26+ (`brew install go` si no lo tienes)
 - Acceso de red a tu servidor Vault
-- El método de auth **OIDC** habilitado en ese Vault (por ahora es el único
-  método de login soportado)
+- Uno de los métodos de auth soportados habilitado en ese Vault: **OIDC**
+  (por defecto), **token**, **userpass** o **LDAP** — ver §4
 
 ## 2. Compilar
 
@@ -31,14 +31,14 @@ Esto genera el binario `vault-tui` en la carpeta del proyecto.
 
 También puedes fijar variables de entorno en vez de flags:
 
-| Flag           | Variable de entorno | Por defecto | Notas |
-|----------------|----------------------|-------------|-------|
-| `--addr`       | `VAULT_ADDR`         | —           | obligatorio |
-| `--namespace`  | `VAULT_NAMESPACE`    | —           | solo Vault Enterprise |
-| `--oidc-mount` | `VAULT_OIDC_MOUNT`   | `oidc`      | mount del método OIDC — confírmalo con el admin de tu Vault si no es `oidc` |
-| `--oidc-role`  | `VAULT_OIDC_ROLE`    | —           | vacío = usa el rol por defecto del mount |
-| `--oidc-port`  | `VAULT_OIDC_PORT`    | `8250`      | puerto local de callback; ver §5 |
-| `--debug-log`  | `VAULT_TUI_DEBUG_LOG` | —          | vuelca logs de depuración a este fichero; ver §9.1 |
+| Flag            | Variable de entorno   | Por defecto | Notas |
+|-----------------|-------------------------|-------------|-------|
+| `--addr`        | `VAULT_ADDR`            | —           | obligatorio |
+| `--namespace`   | `VAULT_NAMESPACE`       | —           | solo Vault Enterprise |
+| `--auth-method` | `VAULT_AUTH_METHOD`     | `oidc`      | `oidc`, `token`, `userpass` o `ldap` — ver §4 |
+| `--debug-log`   | `VAULT_TUI_DEBUG_LOG`   | —           | vuelca logs de depuración a este fichero; ver §9.1 |
+
+Flags específicos de cada método de auth (`--oidc-*`, `--token`, `--username`/`--password`, `--userpass-mount`, `--ldap-mount`) están detallados en §4.
 
 Ejemplo dejándolo fijado en tu shell:
 
@@ -53,16 +53,62 @@ export VAULT_ADDR=https://vault.example.com
 
 1. La app busca un token cacheado en `~/.vault-token` (el mismo fichero que
    usa el CLI oficial `vault`, así que ambos comparten sesión). Si es
-   válido, entra directo sin pedir login.
-2. Si no hay token o ha caducado, abre tu navegador contra el proveedor
-   OIDC que tengas configurado en Vault. Completas el login ahí (o se
-   completa solo si ya tenías sesión activa de SSO).
-3. Al terminar verás en el navegador "**Login successful — you can close
-   this tab**". Vuelves a la terminal y la TUI arranca sola.
-4. El token nuevo se guarda en `~/.vault-token` para la próxima vez.
+   válido, entra directo sin pedir login — salte al paso 4 (excepto con
+   `--auth-method=token`, que siempre usa el token que le pases, ver 4.2).
+2. Si no hay token o ha caducado, ejecuta el flujo del método de login
+   elegido con `--auth-method`/`VAULT_AUTH_METHOD` (por defecto `oidc`).
+3. El token nuevo se guarda en `~/.vault-token` para la próxima vez.
+
+### 4.1 OIDC (por defecto)
+
+```sh
+./vault-tui --addr https://vault.example.com
+```
+
+| Flag           | Variable de entorno | Por defecto | Notas |
+|----------------|----------------------|-------------|-------|
+| `--oidc-mount` | `VAULT_OIDC_MOUNT`   | `oidc`      | mount del método OIDC — confírmalo con el admin de tu Vault si no es `oidc` |
+| `--oidc-role`  | `VAULT_OIDC_ROLE`    | —           | vacío = usa el rol por defecto del mount |
+| `--oidc-port`  | `VAULT_OIDC_PORT`    | `8250`      | puerto local de callback; ver §5 |
+
+Abre tu navegador contra el proveedor OIDC configurado en Vault. Completas
+el login ahí (o se completa solo si ya tenías sesión SSO activa). Al
+terminar verás "**Login successful — you can close this tab**" y vuelves a
+la terminal, donde la TUI arranca sola.
 
 **Importante:** este paso abre un navegador real y puede completar un login
 de verdad si ya tienes sesión SSO activa — no es una simulación.
+
+### 4.2 Token
+
+```sh
+./vault-tui --addr https://vault.example.com --auth-method=token --token s.xxxxxxxxxxxx
+# o, mejor si comparte terminal/máquina con otros procesos:
+export VAULT_TOKEN=s.xxxxxxxxxxxx
+./vault-tui --addr https://vault.example.com --auth-method=token
+```
+
+Usa el token directamente (se valida con un self-lookup contra Vault) — no
+hay paso de login interactivo. Útil si ya tienes un token de otra
+herramienta o método. **Este modo ignora la caché**: siempre usa el token
+que le pases, y lo sobrescribe en `~/.vault-token` si es válido.
+
+### 4.3 Userpass / LDAP
+
+```sh
+./vault-tui --addr https://vault.example.com --auth-method=userpass
+./vault-tui --addr https://vault.example.com --auth-method=ldap
+```
+
+| Flag               | Variable de entorno     | Por defecto | Notas |
+|---------------------|---------------------------|------------|-------|
+| `--username`        | `VAULT_USERNAME`         | —          | si se omite, se pide por terminal |
+| `--password`        | `VAULT_PASSWORD`         | —          | si se omite, se pide por terminal **sin eco** (no se ve lo que escribes). Evita pasarla por flag/env en máquinas compartidas, ya que queda visible para otros procesos locales (`ps`, `/proc`) |
+| `--userpass-mount`  | `VAULT_USERPASS_MOUNT`   | `userpass` | mount del método userpass |
+| `--ldap-mount`      | `VAULT_LDAP_MOUNT`       | `ldap`     | mount del método LDAP |
+
+Inicia sesión con usuario/contraseña contra el método `userpass` o `ldap`
+de Vault.
 
 ### Forzar un nuevo login
 
@@ -345,6 +391,8 @@ coincidieron) y el detalle de cualquier error de operación contra Vault
 | El navegador da error de `redirect_uri` no permitida | El puerto usado no está whitelisted en el role OIDC / en tu proveedor OIDC | Usa `--oidc-port` con uno permitido, o pide al admin de Vault que añada `http://localhost:8250/oidc/callback` |
 | Se queda esperando el login sin abrir navegador | El comando `open` no encontró un navegador por defecto, o estás en una sesión sin entorno gráfico | Copia manualmente la URL que imprime la terminal y ábrela tú |
 | "OIDC login failed: ... role required" o similar | El mount OIDC no tiene rol por defecto | Especifica `--oidc-role <nombre>` |
+| "token login failed: ..." | El token pasado con `--token`/`VAULT_TOKEN` no es válido o ha caducado | Genera uno nuevo (p. ej. `vault login`) y vuelve a pasarlo |
+| "userpass login failed: ..." / "LDAP login failed: ..." | Usuario/contraseña incorrectos, o el mount no es el que esperas | Revisa `--userpass-mount`/`--ldap-mount` con el admin de Vault |
 | Un mount KV v2 no aparece en la lista | El token no tiene permiso de `list` sobre `sys/mounts` o sobre ese path | Revisa la policy asociada a tu usuario/rol en Vault |
 | "could not open a new TTY" | Intentaste correr el binario sin una terminal real (p. ej. en background/redirigido) | Ejecútalo directamente en tu terminal, no en background |
 
@@ -355,9 +403,11 @@ coincidieron) y el detalle de cualquier error de operación contra Vault
 ```
 main.go                    flags/env, bootstrap de auth, arranque de la TUI
 internal/vault/
-  config.go                 struct de configuración
-  client.go                 cliente Vault + caché de token
+  config.go                 struct de configuración (incluye AuthMethod)
+  client.go                 cliente Vault + caché de token + dispatcher de login por método
   oidc.go                   flujo de login OIDC vía navegador
+  userpass.go               login compartido para userpass/LDAP
+  prompt.go                 prompts de usuario/contraseña por terminal (contraseña sin eco)
   kv.go                     operaciones KV v2 (listar/leer/escribir/borrar/renombrar)
 internal/tui/
   model.go                  modelo raíz, máquina de estados de pantallas
